@@ -21,19 +21,11 @@ grapphs_bootstrap()
 
 set(CMAKE_CXX_STANDARD 17)
 
+include(CMakePackageConfigHelpers)
 include(GNUInstallDirs)
 include(CMakePrintHelpers)
 include(ExternalData)
 include(cmake/GrapphsConan.cmake)
-
-if(NOT CONAN_EXPORTED)
-    ### Prepare install export
-    install(
-            EXPORT grapphs
-            DESTINATION .
-            NAMESPACE grapphs::
-    )
-endif()
 
 ### Prepare grapphs header-only library target
 set(
@@ -66,21 +58,30 @@ target_include_directories(
         $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
 )
 
-target_sources(
-        grapphs
-        PUBLIC
-        FILE_SET HEADERS
-        TYPE HEADERS
-        BASE_DIRS include
-        FILES "${GRAPPHS_HEADERS}"
-)
+configure_package_config_file(cmake/config.cmake.in
+        ${CMAKE_CURRENT_BINARY_DIR}/grapphs-config.cmake
+        INSTALL_DESTINATION ${CMAKE_INSTALL_DATADIR}/grapphs
+        NO_SET_AND_CHECK_MACRO)
+
+write_basic_package_version_file(
+        ${CMAKE_CURRENT_BINARY_DIR}/grapphs-config-version.cmake
+        VERSION ${GRAPPHS_VERSION}
+        COMPATIBILITY SameMajorVersion)
 
 install(
-        TARGETS grapphs
-        EXPORT grapphs
-        FILE_SET HEADERS
+        FILES
+            ${CMAKE_CURRENT_BINARY_DIR}/grapphs-config.cmake
+            ${CMAKE_CURRENT_BINARY_DIR}/grapphs-config-version.cmake
+        DESTINATION
+            ${CMAKE_INSTALL_DATADIR}/grapphs
 )
 
+install(TARGETS grapphs EXPORT grapphs-targets)
+install(DIRECTORY include/ DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
+install(EXPORT grapphs-targets
+        NAMESPACE grapphs::
+        DESTINATION ${CMAKE_INSTALL_DATADIR}/grapphs
+)
 ### Check for modules
 option(GRAPPHS_COMPILE_TESTS "Create Unit Test executable?" ON)
 option(GRAPPHS_COMPILE_GRAPHVIZ "Create graphviz support target?" ON)
